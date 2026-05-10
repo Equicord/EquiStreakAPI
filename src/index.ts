@@ -1,5 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import './db.js';
 import streaksRouter from './routes/streaks.js';
 import authRouter from './routes/auth.js';
@@ -8,11 +10,14 @@ import metricsRouter from './routes/metrics.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('/api', authRouter);
 app.use('/api/streaks', streaksRouter);
