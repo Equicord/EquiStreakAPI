@@ -184,6 +184,64 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/streaks/migrate
+router.post('/migrate', async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.id;
+  const legacyStreaks = req.body;
+
+  if (!legacyStreaks || typeof legacyStreaks !== 'object') {
+    res.status(400).json({ error: 'Invalid payload' });
+    return;
+  }
+
+  try {
+    const pipeline = redis.pipeline();
+    let migratedAny = false;
+
+    for (const [recipientId, data] of Object.entries(legacyStreaks)) {
+      const legacyData = data as any;
+      if (!legacyData || typeof legacyData.count !== 'number') continue;
+
+      const [idA, idB] = [userId, recipientId].sort();
+      const streakKey = `streak:${idA}:${idB}`;
+
+      const existingCountStr = await redis.hget(streakKey, 'count');
+      const existingCount = Number(existingCountStr) || 0;
+
+      const migratedCount = Math.max(existingCount, legacyData.count);
+
+      if (migratedCount > existingCount) {
+        pipeline.sadd(`user_streaks:${idA}`, streakKey);
+        pipeline.sadd(`user_streaks:${idB}`, streakKey);
+        
+        const isUserA = (userId === idA);
+        const userAToday = isUserA && (legacyData.todayFlags & 1) ? "1" : "0";
+        const userBToday = (!isUserA) && (legacyData.todayFlags & 1) ? "1" : "0";
+        
+        pipeline.hset(streakKey, {
+          count: String(migratedCount),
+          user_a_id: idA,
+          user_b_id: idB,
+          user_a_today: userAToday,
+          user_b_today: userBToday,
+          last_streak_date: legacyData.lastDay || "",
+          today_date: legacyData.todayDate || ""
+        });
+        migratedAny = true;
+      }
+    }
+
+    if (migratedAny) {
+      await pipeline.exec();
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/streaks/:recipient_id
 router.get('/:recipient_id', async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
