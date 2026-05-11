@@ -32,7 +32,7 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
       if (current === 1) {
         await redis.expire(rateLimitKey, 60);
       }
-      if (current > 100) {
+      if (current > 60) {
         res.status(429).json({ error: 'Too many requests' });
         return;
       }
