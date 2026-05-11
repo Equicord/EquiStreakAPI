@@ -208,16 +208,16 @@ router.post('/migrate', async (req: AuthRequest, res: Response) => {
       const existingCountStr = await redis.hget(streakKey, 'count');
       const existingCount = Number(existingCountStr) || 0;
 
-      const migratedCount = Math.max(existingCount, legacyData.count);
+      const migratedCount = Math.min(50, Math.max(existingCount, legacyData.count));
 
       if (migratedCount > existingCount) {
         pipeline.sadd(`user_streaks:${idA}`, streakKey);
         pipeline.sadd(`user_streaks:${idB}`, streakKey);
-        
+
         const isUserA = (userId === idA);
         const userAToday = isUserA && (legacyData.todayFlags & 1) ? "1" : "0";
         const userBToday = (!isUserA) && (legacyData.todayFlags & 1) ? "1" : "0";
-        
+
         pipeline.hset(streakKey, {
           count: String(migratedCount),
           user_a_id: idA,
@@ -234,7 +234,7 @@ router.post('/migrate', async (req: AuthRequest, res: Response) => {
     if (migratedAny) {
       await pipeline.exec();
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);
