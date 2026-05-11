@@ -9,12 +9,13 @@ const router: ExpressRouter = Router();
 
 // POST /api/streaks/admin/update
 router.post('/admin/update', requireAdmin as any, async (req: any, res: Response) => {
-  const { user_a_id, user_b_id, count } = req.body;
+  const { user_a_id, user_b_id, count, last_streak_date, today_date, user_a_today, user_b_today } = req.body;
   if (!user_a_id || !user_b_id || count === undefined) {
     res.status(400).json({ error: 'Missing required fields: user_a_id, user_b_id, count' });
     return;
   }
 
+  const today = new Date().toISOString().split('T')[0];
   const [idA, idB] = [user_a_id, user_b_id].sort();
   const streakKey = `streak:${idA}:${idB}`;
 
@@ -28,8 +29,10 @@ router.post('/admin/update', requireAdmin as any, async (req: any, res: Response
       count: String(count),
       user_a_id: idA,
       user_b_id: idB,
-      user_a_today: "0",
-      user_b_today: "0"
+      last_streak_date: last_streak_date ?? today,
+      today_date: today_date ?? today,
+      user_a_today: user_a_today ? "1" : "0",
+      user_b_today: user_b_today ? "1" : "0",
     });
 
     const obj = await redis.hgetall(streakKey);
