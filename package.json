@@ -11,7 +11,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "packageManager": "pnpm@11.0.9",
   "type": "module",
   "dependencies": {
