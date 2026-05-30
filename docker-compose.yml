@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
+  api:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-set_me}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-set_me}
+      DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-http://localhost:3000/api/authorize}
+      MASTER_API_KEY: ${MASTER_API_KEY:-local_test_master_key_at_least_32_chars}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
+      TRUST_XFF: ${TRUST_XFF:-0}
+    restart: unless-stopped
+
+volumes:
+  redis-data:

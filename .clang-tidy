@@ -1,0 +1,51 @@
+---
+# Curated static-analysis checks for streaksapi.
+# Run via `make lint`. Vendor and tools/ are excluded from invocation, not via filter.
+
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-reserved-identifier,
+  -bugprone-suspicious-string-compare,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-assignment-in-if-condition,
+  -bugprone-branch-clone,
+  -bugprone-signed-char-misuse,
+
+  cert-*,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -cert-err33-c,
+  -cert-err34-c,
+  -cert-msc24-c,
+  -cert-msc33-c,
+
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.insecureAPI.strcpy,
+  -clang-analyzer-security.ArrayBound,
+  -clang-analyzer-valist.Uninitialized,
+  -clang-analyzer-unix.Stream,
+
+  performance-*,
+  -performance-no-int-to-ptr,
+
+  portability-*,
+
+  readability-duplicate-include,
+  readability-inconsistent-declaration-parameter-name,
+  readability-misleading-indentation,
+  readability-misplaced-array-index,
+  readability-non-const-parameter,
+  readability-redundant-control-flow,
+  readability-redundant-declaration,
+  readability-redundant-preprocessor,
+  readability-string-compare,
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '^src/(?!vendor/).*$'
+FormatStyle: file
+CheckOptions:
+  - { key: readability-braces-around-statements.ShortStatementLines, value: '2' }

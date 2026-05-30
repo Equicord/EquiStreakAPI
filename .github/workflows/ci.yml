@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config clang-format clang-tidy \
+            libmicrohttpd-dev libhiredis-dev libcurl4-openssl-dev libjson-c-dev
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Lint (fmt + headers + clang-tidy)
+        run: make lint
+
+      - name: Show binary info
+        run: |
+          file build/equistreakapi
+          ls -la build/equistreakapi
+
+  sanitize:
+    name: ASAN + UBSAN build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config \
+            libmicrohttpd-dev libhiredis-dev libcurl4-openssl-dev libjson-c-dev
+
+      - name: Sanitizer build
+        run: make sanitize -j"$(nproc)"
+
+      - name: Show sanitizer binary
+        run: |
+          file build-san/equistreakapi
+          ls -la build-san/equistreakapi
+
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config \
+            libmicrohttpd-dev libhiredis-dev libcurl4-openssl-dev libjson-c-dev
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Start server
+        env:
+          REDIS_URL: redis://localhost:6379
+          DISCORD_CLIENT_ID: ci_fake_client_id
+          DISCORD_CLIENT_SECRET: ci_fake_client_secret
+          MASTER_API_KEY: ci_master_key_at_least_thirty_two_chars
+          PORT: "3000"
+          BIND: 127.0.0.1
+        run: |
+          ./build/equistreakapi --public-dir ./public &
+          echo $! > /tmp/api.pid
+          for i in $(seq 30); do
+            curl -fsS http://127.0.0.1:3000/health/live >/dev/null && break
+            sleep 0.2
+          done
+
+      - name: Hit endpoints
+        env:
+          MASTER_KEY: ci_master_key_at_least_thirty_two_chars
+        run: |
+          set -e
+          curl -fsS http://127.0.0.1:3000/health
+          echo
+          curl -fsS http://127.0.0.1:3000/health/live
+          echo
+          curl -fsS http://127.0.0.1:3000/health/ready
+          echo
+          curl -fsS http://127.0.0.1:3000/version
+          echo
+          curl -fsS http://127.0.0.1:3000/metrics
+          echo
+          curl -fsS http://127.0.0.1:3000/metrics/prometheus | head -5
+          curl -fsS -X POST \
+            -H "x-api-key: $MASTER_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"user_a_id":"100000000000000001","user_b_id":"200000000000000002","count":3}' \
+            http://127.0.0.1:3000/api/streaks/admin/update
+          echo
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/streaks)" = "401"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'x-api-key: wrong' \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:3000/api/streaks/admin/update)" = "403"
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/api.pid ]; then
+            kill "$(cat /tmp/api.pid)" 2>/dev/null || true
+          fi
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: equistreakapi:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
