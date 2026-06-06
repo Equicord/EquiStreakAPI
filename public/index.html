@@ -1,324 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EquiStreak API</title>
-    <meta name="description" content="The blazing fast backend powering Equicord Streaks.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #09090b;
-            --accent-purple: #9b39fe;
-            --accent-pink: #f7409c;
-            --text-main: #ffffff;
-            --text-muted: #a1a1aa;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.05);
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>equistreak api</title>
+	<meta name="description" content="the blazing fast backend powering equicord streaks.">
+	<meta name="theme-color" content="#0a0a0a">
+	<meta property="og:title" content="equistreak api">
+	<meta property="og:description" content="the blazing fast backend powering equicord streaks.">
+	<meta property="og:type" content="website">
+	<meta name="twitter:card" content="summary">
+	<link rel="icon" type="image/webp" href="/favicon.webp">
+	<link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
+	<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+	<style>
+		*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+		html, body { height: 100%; }
+		body {
+			font-family: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+			background: #0a0a0a;
+			color: #ffffff;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 2rem;
+			-webkit-font-smoothing: antialiased;
+		}
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
+		main {
+			width: 100%;
+			max-width: 700px;
+			text-align: center;
+		}
 
-        /* Animated Background Blobs */
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            z-index: 0;
-            animation: float 20s infinite ease-in-out alternate;
-        }
+		.stagger {
+			display: inline-block;
+			opacity: 0;
+			transform: translateY(2.5rem);
+			filter: blur(4px);
+			transition: opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out;
+		}
+		.stagger.in {
+			opacity: 1;
+			transform: translateY(0);
+			filter: blur(0);
+		}
 
-        .blob-1 {
-            width: 400px;
-            height: 400px;
-            background: var(--accent-purple);
-            top: -10%;
-            left: -10%;
-            opacity: 0.4;
-        }
+		h1 {
+			font-size: 2.75rem;
+			font-weight: 700;
+			letter-spacing: -0.02em;
+			line-height: 1.05;
+			margin-bottom: 1rem;
+		}
+		h1 .word { display: inline-block; }
+		h1 .word + .word { margin-left: 0.5rem; }
 
-        .blob-2 {
-            width: 350px;
-            height: 350px;
-            background: var(--accent-pink);
-            bottom: -10%;
-            right: -10%;
-            opacity: 0.3;
-            animation-delay: -10s;
-        }
+		.subtitle {
+			font-size: 1.125rem;
+			font-weight: 500;
+			color: #a3a3a3;
+			margin-bottom: 4rem;
+			max-width: 32rem;
+			margin-left: auto;
+			margin-right: auto;
+		}
 
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, 50px) scale(1.2); }
-        }
+		.stats {
+			display: flex;
+			gap: 4rem;
+			justify-content: center;
+			margin-bottom: 4rem;
+			flex-wrap: wrap;
+		}
+		.stat-value {
+			font-size: 2.5rem;
+			font-weight: 700;
+			line-height: 1;
+			color: #ffffff;
+			font-variant-numeric: tabular-nums;
+		}
+		.stat-label {
+			margin-top: 0.5rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+			color: #737373;
+			letter-spacing: 0.02em;
+		}
 
-        /* Glassmorphism Container */
-        .container {
-            position: relative;
-            z-index: 1;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 3.5rem 3rem;
-            width: 90%;
-            max-width: 500px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transform: translateY(20px);
-            opacity: 0;
-            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+		.footer {
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: #525252;
+			font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+			font-variant-numeric: tabular-nums;
+		}
+		.footer span { color: #a3a3a3; }
 
-        @keyframes slideUp {
-            to { transform: translateY(0); opacity: 1; }
-        }
+		.links {
+			margin-top: 3rem;
+			display: flex;
+			gap: 1.75rem;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
+		.links a {
+			color: #737373;
+			text-decoration: none;
+			display: inline-flex;
+			align-items: center;
+			transition: color 0.15s ease;
+		}
+		.links a:hover { color: #ffffff; }
+		.links a:focus-visible { outline: 1px solid #ffffff; outline-offset: 6px; border-radius: 2px; }
+		.links svg { width: 1.75rem; height: 1.75rem; fill: currentColor; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
+		@media (max-width: 640px) {
+			h1 { font-size: 2rem; }
+			.subtitle { font-size: 1rem; margin-bottom: 2.5rem; }
+			.stats { gap: 2.5rem; margin-bottom: 2.5rem; }
+			.stat-value { font-size: 2rem; }
+		}
 
-        h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #ffffff, #a1a1aa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            font-weight: 300;
-            font-size: 1.1rem;
-            line-height: 1.5;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-            padding: 6px 14px;
-            border-radius: 99px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .status-badge.offline {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border-color: rgba(239, 68, 68, 0.2);
-        }
-
-        .pulse {
-            width: 8px;
-            height: 8px;
-            background-color: currentColor;
-            border-radius: 50%;
-            animation: pulsing 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-        }
-
-        @keyframes pulsing {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 2.5rem;
-        }
-
-        .stat-card {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--glass-border);
-            padding: 1.5rem;
-            border-radius: 16px;
-            text-align: center;
-            transition: transform 0.3s ease, background 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-            color: var(--text-main);
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .btn {
-            flex: 1;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            border-radius: 12px;
-            font-family: 'Outfit', sans-serif;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
-            color: white;
-            box-shadow: 0 4px 15px rgba(155, 57, 254, 0.25);
-        }
-
-        .btn-primary:hover {
-            transform: scale(1.03);
-            box-shadow: 0 6px 20px rgba(155, 57, 254, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            border: 1px solid var(--glass-border);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.03);
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-radius: 50%;
-            border-top-color: var(--accent-purple);
-            animation: spin 1s ease-in-out infinite;
-            margin: 10px 0;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+		@media (prefers-reduced-motion: reduce) {
+			.stagger { transition: none; opacity: 1; transform: none; filter: none; }
+		}
+	</style>
 </head>
 <body>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
+	<main>
+		<h1 id="title"></h1>
 
-    <main class="container">
-        <div class="header">
-            <div id="statusIndicator" class="status-badge">
-                <div class="pulse"></div>
-                <span id="statusText">Checking Systems...</span>
-            </div>
-            <h1>EquiStreak API</h1>
-            <p class="subtitle">The blazing fast backend powering Equicord Streaks.</p>
-        </div>
+		<p class="subtitle stagger" style="transition-delay:500ms">
+			the blazing fast backend powering equicord streaks.
+		</p>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalStreaks"><div class="loading"></div></div>
-                <div class="stat-label">Total Streaks</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="activeUsers"><div class="loading"></div></div>
-                <div class="stat-label">Users Today</div>
-            </div>
-        </div>
+		<div class="stats">
+			<div class="stagger" style="transition-delay:700ms">
+				<div class="stat-value" id="streaks_total">—</div>
+				<div class="stat-label">streaks</div>
+			</div>
+			<div class="stagger" style="transition-delay:800ms">
+				<div class="stat-value" id="users_day">—</div>
+				<div class="stat-label">users today</div>
+			</div>
+		</div>
 
-        <div class="btn-group">
-            <a href="/metrics" class="btn btn-primary">View Metrics</a>
-            <a href="/health" class="btn btn-secondary">Health Check</a>
-        </div>
-    </main>
+		<div class="footer stagger" style="transition-delay:1000ms">
+			<span id="ftVersion">—</span>
+			<span style="color:#3f3f46">·</span>
+			<span id="ftUptime">—</span> uptime
+		</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
-            const totalStreaksEl = document.getElementById('totalStreaks');
-            const activeUsersEl = document.getElementById('activeUsers');
+		<div class="links stagger" style="transition-delay:1150ms">
+			<a href="https://github.com/Equicord/Equicord" target="_blank" rel="noopener noreferrer" aria-label="equicord on github">
+				<svg viewBox="0 0 16 16" aria-hidden="true">
+					<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+				</svg>
+			</a>
+			<a href="https://equicord.org" target="_blank" rel="noopener noreferrer" aria-label="equicord website">
+				<svg viewBox="0 0 16 16" aria-hidden="true">
+					<path d="M8 0a8 8 0 100 16A8 8 0 008 0zM1.5 8c0-.36.03-.71.08-1.05l4.47 4.47v.83a1.5 1.5 0 001.5 1.5v1.48A6.5 6.5 0 011.5 8zm10.6 5.9a1.5 1.5 0 00-1.43-1.07h-.75v-2.25a.75.75 0 00-.75-.75H5v-1.5h1.5a.75.75 0 00.75-.75v-1.5h1.5a1.5 1.5 0 001.5-1.5v-.31A6.5 6.5 0 0114.5 8a6.46 6.46 0 01-2.4 5.06z"/>
+				</svg>
+			</a>
+		</div>
+	</main>
 
-            try {
-                const healthRes = await fetch('/health');
-                if (healthRes.ok) {
-                    statusText.textContent = 'All Systems Operational';
-                } else {
-                    throw new Error('API Offline');
-                }
+	<script>
+		const TITLE = "equistreak api";
+		const REFRESH_MS = 10000;
+		const TWEEN_MS = 600;
+		let versionCache = null;
+		const lastValues = { streaks_total: 0, users_day: 0 };
+		let serverUptime = 0;
+		let serverUptimeAt = 0;
 
-                const metricsRes = await fetch('/metrics');
-                const metricsData = await metricsRes.json();
-                
-                animateValue(totalStreaksEl, 0, metricsData.streaks_total || 0, 1500);
-                animateValue(activeUsersEl, 0, metricsData.users_day || 0, 1500);
+		function buildTitle() {
+			const el = document.getElementById('title');
+			const spans = TITLE.split(' ').map((word, i) => {
+				const span = document.createElement('span');
+				span.className = 'word stagger';
+				span.style.transitionDelay = (i * 110) + 'ms';
+				span.textContent = word;
+				return span;
+			});
+			el.replaceChildren(...spans);
+		}
 
-            } catch (error) {
-                statusIndicator.classList.add('offline');
-                statusText.textContent = 'Service Disconnected';
-                totalStreaksEl.innerHTML = '<span style="font-size: 1.5rem; color: #ef4444;">Offline</span>';
-                activeUsersEl.innerHTML = '<span style="font-size: 1.5rem; color: #ef4444;">Offline</span>';
-            }
-        });
+		function playStagger() {
+			requestAnimationFrame(() => {
+				document.querySelectorAll('.stagger').forEach(el => el.classList.add('in'));
+			});
+		}
 
-        function animateValue(obj, start, end, duration) {
-            if (end === 0) {
-                obj.textContent = "0";
-                return;
-            }
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 4);
-                obj.textContent = Math.floor(ease * (end - start) + start).toLocaleString();
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
-        }
-    </script>
+		function fmtUptime(s) {
+			s = Math.max(0, Math.round(s));
+			const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+			const m = Math.floor((s % 3600) / 60), sec = s % 60;
+			if (d) return `${d}d ${h}h`;
+			if (h) return `${h}h ${m}m`;
+			if (m) return `${m}m ${sec}s`;
+			return `${sec}s`;
+		}
+
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+		function tween(el, from, to, fmt) {
+			if (reduceMotion || from === to) {
+				el.textContent = fmt(to);
+				return;
+			}
+			const start = performance.now();
+			function step(now) {
+				const t = Math.min(1, (now - start) / TWEEN_MS);
+				const eased = 1 - Math.pow(1 - t, 3);
+				const v = t < 1 ? from + (to - from) * eased : to;
+				el.textContent = fmt(v);
+				if (t < 1) requestAnimationFrame(step);
+			}
+			requestAnimationFrame(step);
+		}
+
+		const fmtInt = n => Math.round(n).toLocaleString();
+
+		function currentUptimeSeconds() {
+			if (serverUptimeAt === 0) return 0;
+			return serverUptime + (performance.now() - serverUptimeAt) / 1000;
+		}
+		function tickUptime() {
+			const el = document.getElementById('ftUptime');
+			el.textContent = fmtUptime(currentUptimeSeconds());
+		}
+
+		async function refresh() {
+			try {
+				const tasks = [fetch('/metrics').then(r => r.json())];
+				if (!versionCache) tasks.push(fetch('/version').then(r => r.json()).catch(() => ({})));
+				const [metrics, version] = await Promise.all(tasks);
+				if (version) versionCache = version;
+
+				const streaks = metrics.streaks_total || 0;
+				const users = metrics.users_day || 0;
+
+				tween(document.getElementById('streaks_total'), lastValues.streaks_total, streaks, fmtInt);
+				tween(document.getElementById('users_day'), lastValues.users_day, users, fmtInt);
+
+				lastValues.streaks_total = streaks;
+				lastValues.users_day = users;
+
+				serverUptime = metrics.uptime_seconds || 0;
+				serverUptimeAt = performance.now();
+				tickUptime();
+
+				document.getElementById('ftVersion').textContent = 'v' + (versionCache.version || '?');
+			} catch {
+				// metrics fetch failed; leave whatever values are already shown
+			}
+		}
+
+		buildTitle();
+		playStagger();
+		refresh();
+		let pollTimer = setInterval(refresh, REFRESH_MS);
+		let uptimeTimer = setInterval(tickUptime, 1000);
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				clearInterval(pollTimer);
+				clearInterval(uptimeTimer);
+			} else {
+				refresh();
+				pollTimer = setInterval(refresh, REFRESH_MS);
+				uptimeTimer = setInterval(tickUptime, 1000);
+			}
+		});
+	</script>
 </body>
 </html>

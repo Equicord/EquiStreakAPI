@@ -1,3 +1,61 @@
+# Build output
+build/
+build-*/
+*.o
+*.a
+*.so
+*.so.*
+*.d
+*.dSYM/
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# Sanitizer / profiling
+massif.out.*
+perf.data*
+gmon.out
+callgrind.out.*
+heaptrack.*
+
+# Crashes
+core
+core.*
+vgcore.*
+
+# Tooling caches
+.cache/
+compile_commands.json
+.ccls-cache/
+.clangd/
+tags
+TAGS
+cscope.*
+
+# Local config / secrets
 .env
-node_modules
-dist
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+.DS_Store
+Thumbs.db
+
+# Python (for any future test/tooling scripts)
+__pycache__/
+*.pyc
+.venv/

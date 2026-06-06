@@ -1,6 +1,7 @@
-node_modules
-dist
+build/
+build-*/
+.cache/
+compile_commands.json
+.git/
 .env
-.git
-.gitignore
-*.md
+*.log
