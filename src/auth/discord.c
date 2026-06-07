@@ -48,9 +48,13 @@ int discord_get_user_id(const char *bearer_token, char *out_id, size_t cap) {
 	curl_slist_free_all(headers);
 
 	if (rc != CURLE_OK || http_code != 200 || !body.data) {
-		log_warn("discord /users/@me failed (curl=%d http=%ld)", (int)rc, http_code);
-		counter_discord_inc(rc == CURLE_OPERATION_TIMEDOUT ? DISCORD_TIMEOUT : DISCORD_ERROR);
-		breaker_record_failure();
+		if (http_code == 401 || http_code == 403) {
+			breaker_record_success();
+		} else {
+			log_warn("discord /users/@me failed (curl=%d http=%ld)", (int)rc, http_code);
+			counter_discord_inc(rc == CURLE_OPERATION_TIMEDOUT ? DISCORD_TIMEOUT : DISCORD_ERROR);
+			breaker_record_failure();
+		}
 		equi_buf_free(&body);
 		return http_code > 0 ? (int)http_code : -1;
 	}
