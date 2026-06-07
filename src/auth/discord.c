@@ -52,7 +52,7 @@ int discord_get_user_id(const char *bearer_token, char *out_id, size_t cap) {
 		counter_discord_inc(rc == CURLE_OPERATION_TIMEDOUT ? DISCORD_TIMEOUT : DISCORD_ERROR);
 		breaker_record_failure();
 		equi_buf_free(&body);
-		return -1;
+		return http_code > 0 ? (int)http_code : -1;
 	}
 
 	struct json_tokener *tok = json_tokener_new();

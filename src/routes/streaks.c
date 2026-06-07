@@ -35,8 +35,16 @@ int require_bearer(struct http_request *r, char *out_uid, size_t cap, int *err_r
 		*err_rc = http_send_error(r->conn, 401, "Unauthorized: Invalid token format");
 		return -1;
 	}
-	if (auth_resolve_user(token, out_uid, cap) != 0) {
-		*err_rc = http_send_error(r->conn, 401, "Unauthorized: Invalid token");
+	int status = auth_resolve_user(token, out_uid, cap);
+	if (status != 0) {
+		int code = (status > 0) ? status : 502;
+		if (code == 401) {
+			*err_rc = http_send_error(r->conn, 401, "Unauthorized: Invalid token");
+		} else if (code == 429) {
+			*err_rc = http_send_error(r->conn, 429, "Discord API Rate Limit Reached");
+		} else {
+			*err_rc = http_send_error(r->conn, 502, "Discord API Error");
+		}
 		return -1;
 	}
 	if (!equi_is_discord_id(out_uid)) {

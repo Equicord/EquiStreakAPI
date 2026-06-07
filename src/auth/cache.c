@@ -84,7 +84,8 @@ int auth_resolve_user(const char *bearer_token, char *out_id, size_t cap) {
 		return 0;
 	}
 	counter_cache_inc(CACHE_MISS);
-	if (discord_get_user_id(bearer_token, out_id, cap) != 0) return -1;
+	int status = discord_get_user_id(bearer_token, out_id, cap);
+	if (status != 0) return status;
 	auth_cache_store(bearer_token, out_id);
 	return 0;
 }
