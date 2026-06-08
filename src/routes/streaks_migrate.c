@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 creations
 
+#define _DEFAULT_SOURCE
 #include "streaks_internal.h"
 
 #include "../http/request.h"
@@ -8,6 +9,7 @@
 #include "../log.h"
 #include "../redis/pipeline.h"
 #include "../redis/redis.h"
+#include "../redis/streak_update.h"
 #include "../util.h"
 
 #include <json-c/json.h>
@@ -16,6 +18,22 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+static int64_t mig_iso_to_epoch_noon(const char *iso) {
+	if (!iso || strlen(iso) < 10) return 0;
+	int y = 0, mo = 0, d = 0;
+	if (sscanf(iso, "%4d-%2d-%2d", &y, &mo, &d) != 3) return 0;
+	if (y < 1970 || mo < 1 || mo > 12 || d < 1 || d > 31) return 0;
+	struct tm t;
+	memset(&t, 0, sizeof t);
+	t.tm_year = y - 1900;
+	t.tm_mon = mo - 1;
+	t.tm_mday = d;
+	t.tm_hour = 12;
+	time_t e = timegm(&t);
+	return (e == (time_t)-1) ? 0 : (int64_t)e;
+}
 
 int handle_migrate(struct http_request *r, void *userdata) {
 	(void)userdata;
@@ -128,10 +146,21 @@ int handle_migrate(struct http_request *r, void *userdata) {
 			break;
 		}
 
+		int64_t now = (int64_t)time(NULL);
+		int64_t last_round_ts = mig_iso_to_epoch_noon(last_day);
+		int64_t pending_ts = mig_iso_to_epoch_noon(today_date_v);
+		if (!pending_ts) pending_ts = now;
+		enum streak_pending pending = STREAK_PENDING_NONE;
+		if (user_a_today_b && !user_b_today_b)
+			pending = STREAK_PENDING_A;
+		else if (user_b_today_b && !user_a_today_b)
+			pending = STREAK_PENDING_B;
+		else
+			pending_ts = 0;
+
 		if (redis_streak_append_hmset(c, key, strlen(key), migrated,
 									  lo, strlen(lo), hi, strlen(hi),
-									  last_day, today_date_v,
-									  user_a_today_b, user_b_today_b) != 0) {
+									  last_round_ts, pending, pending_ts, now) != 0) {
 			any_error = true;
 			redis_invalidate_ctx();
 			break;

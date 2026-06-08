@@ -9,12 +9,17 @@
 
 struct equi_buf;
 
+enum streak_pending {
+	STREAK_PENDING_NONE = 0,
+	STREAK_PENDING_A = 1,
+	STREAK_PENDING_B = 2,
+};
+
 struct streak_state {
 	long count;
-	char last_streak_date[16];
-	char today_date[16];
-	bool user_a_today;
-	bool user_b_today;
+	int64_t last_round_ts;
+	int64_t pending_ts;
+	enum streak_pending pending;
 };
 
 struct streak_decision {
@@ -22,8 +27,11 @@ struct streak_decision {
 	struct streak_state state;
 };
 
-void streak_apply(const char *today_iso, const char *yesterday_iso,
-				  const char *current_uid, const char *user_a_id, const char *user_b_id,
+#define STREAK_WINDOW_S_DEFAULT ((int64_t)24 * 60 * 60)
+
+void streak_apply(int64_t now, int64_t window_s,
+				  const char *current_uid,
+				  const char *user_a_id, const char *user_b_id,
 				  const struct streak_state *in, bool in_present,
 				  struct streak_decision *out);
 

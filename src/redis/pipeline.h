@@ -4,10 +4,13 @@
 #ifndef EQUISTREAKAPI_REDIS_PIPELINE_H
 #define EQUISTREAKAPI_REDIS_PIPELINE_H
 
+#include "streak_update.h"
+
 #include <hiredis/hiredis.h>
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 struct equi_buf;
 
@@ -26,8 +29,9 @@ int redis_streak_append_hmset(redisContext *c,
 							  long count,
 							  const char *lo, size_t lo_len,
 							  const char *hi, size_t hi_len,
-							  const char *last_streak_date,
-							  const char *today_date,
-							  bool user_a_today, bool user_b_today);
+							  int64_t last_round_ts,
+							  enum streak_pending pending,
+							  int64_t pending_ts,
+							  int64_t now);
 
 #endif
