@@ -133,7 +133,8 @@ int handle_admin_update(struct http_request *r, void *userdata) {
 	size_t key_len = strlen(key);
 	if (redis_streak_append_hmset(c, key, key_len, count_v,
 								  lo, strlen(lo), hi, strlen(hi),
-								  last_round_ts, pending, pending_ts, now) != 0 ||
+								  last_round_ts, pending, pending_ts,
+								  last_streak_date, today_date_v, NULL, "UTC", now) != 0 ||
 		redisAppendCommand(c, "HGETALL %b", key, key_len) != REDIS_OK) {
 		json_object_put(body);
 		redis_invalidate_ctx();

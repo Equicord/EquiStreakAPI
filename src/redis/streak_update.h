@@ -20,6 +20,20 @@ struct streak_state {
 	int64_t last_round_ts;
 	int64_t pending_ts;
 	enum streak_pending pending;
+	char last_streak_date[11];
+	char pending_date[11];
+	char timezone_a[129];
+	char timezone_b[129];
+	char activity_a_date[11];
+	char activity_b_date[11];
+	char today_a_date[11];
+	char today_b_date[11];
+	char completed_a_date[11];
+	char completed_b_date[11];
+	int64_t activity_a_ts;
+	int64_t activity_b_ts;
+	bool user_a_today;
+	bool user_b_today;
 };
 
 struct streak_decision {
@@ -31,11 +45,14 @@ struct streak_decision {
 
 void streak_apply(int64_t now, int64_t window_s,
 				  const char *current_uid,
+				  const char *message_author_id,
 				  const char *user_a_id, const char *user_b_id,
+				  const char *reported_timezone,
 				  const struct streak_state *in, bool in_present,
 				  struct streak_decision *out);
 
 int streak_update(const char *current_uid, const char *user_a_id, const char *user_b_id,
+				  const char *message_author_id, const char *timezone,
 				  struct equi_buf *out);
 
 #endif

@@ -23,6 +23,7 @@ RUN apk add --no-cache \
     hiredis \
     libcurl \
     json-c \
+    tzdata \
  && addgroup -S equi && adduser -S equi -G equi
 
 COPY --from=builder /src/build/equistreakapi /usr/local/bin/equistreakapi

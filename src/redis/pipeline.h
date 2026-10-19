@@ -32,6 +32,13 @@ int redis_streak_append_hmset(redisContext *c,
 							  int64_t last_round_ts,
 							  enum streak_pending pending,
 							  int64_t pending_ts,
+							  const char *last_streak_date,
+							  const char *today_date,
+							  const char *pending_date,
+							  const char *timezone,
 							  int64_t now);
+
+int redis_streak_append_activity_hmset(redisContext *c, const char *key, size_t key_len,
+									   const struct streak_state *state);
 
 #endif

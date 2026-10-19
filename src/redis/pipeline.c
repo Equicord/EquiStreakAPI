@@ -37,6 +37,10 @@ int redis_streak_append_hmset(redisContext *c,
 							  int64_t last_round_ts,
 							  enum streak_pending pending,
 							  int64_t pending_ts,
+							  const char *last_streak_date_override,
+							  const char *today_date_override,
+							  const char *pending_date,
+							  const char *timezone,
 							  int64_t now) {
 	if (!c || !key || !lo || !hi) return -1;
 
@@ -57,6 +61,8 @@ int redis_streak_append_hmset(redisContext *c,
 	char today_date[11];
 	epoch_to_iso(last_round_ts, last_streak_date);
 	epoch_to_iso(now, today_date);
+	if (last_streak_date_override) snprintf(last_streak_date, sizeof last_streak_date, "%s", last_streak_date_override);
+	if (today_date_override) snprintf(today_date, sizeof today_date, "%s", today_date_override);
 
 	bool last_round_is_today =
 		last_streak_date[0] && today_date[0] && strcmp(last_streak_date, today_date) == 0;
@@ -73,6 +79,8 @@ int redis_streak_append_hmset(redisContext *c,
 							  "pending_ts %s "
 							  "last_streak_date %s "
 							  "today_date %s "
+							  "pending_date %s "
+							  "timezone %s "
 							  "user_a_today %s "
 							  "user_b_today %s",
 							  key, key_len,
@@ -84,8 +92,35 @@ int redis_streak_append_hmset(redisContext *c,
 							  pts_buf,
 							  last_streak_date,
 							  today_date,
+							  pending_date ? pending_date : "",
+							  timezone ? timezone : "UTC",
 							  a_today ? "1" : "0",
 							  b_today ? "1" : "0") == REDIS_OK
+			   ? 0
+			   : -1;
+}
+
+int redis_streak_append_activity_hmset(redisContext *c, const char *key, size_t key_len,
+									   const struct streak_state *s) {
+	if (!c || !key || !s) return -1;
+	char a_ts[32], b_ts[32];
+	snprintf(a_ts, sizeof a_ts, "%lld", (long long)s->activity_a_ts);
+	snprintf(b_ts, sizeof b_ts, "%lld", (long long)s->activity_b_ts);
+	return redisAppendCommand(c,
+							  "HMSET %b timezone_a %s timezone_b %s "
+							  "activity_a_ts %s activity_b_ts %s "
+							  "activity_a_date %s activity_b_date %s "
+							  "today_a_date %s today_b_date %s "
+							  "completed_a_date %s completed_b_date %s "
+							  "user_a_today %s user_b_today %s",
+							  key, key_len,
+							  s->timezone_a[0] ? s->timezone_a : "",
+							  s->timezone_b[0] ? s->timezone_b : "",
+							  a_ts, b_ts,
+							  s->activity_a_date, s->activity_b_date,
+							  s->today_a_date, s->today_b_date,
+							  s->completed_a_date, s->completed_b_date,
+							  s->user_a_today ? "1" : "0", s->user_b_today ? "1" : "0") == REDIS_OK
 			   ? 0
 			   : -1;
 }
@@ -138,6 +173,17 @@ int redis_reply_streak_append_json(redisReply *r, struct equi_buf *out) {
 	size_t pending_len = 0;
 	const char *pending_ts = NULL;
 	size_t pts_len = 0;
+	const char *timezone = NULL;
+	size_t timezone_len = 0;
+	const char *timezone_a = NULL, *timezone_b = NULL;
+	size_t timezone_a_len = 0, timezone_b_len = 0;
+	const char *activity_a_date = NULL, *activity_b_date = NULL;
+	size_t activity_a_len = 0, activity_b_len = 0;
+	const char *today_a_date = NULL, *today_b_date = NULL;
+	size_t today_a_len = 0, today_b_len = 0;
+	const char *complete_a_date = NULL, *complete_b_date = NULL;
+	size_t complete_a_len = 0, complete_b_len = 0;
+	bool complete_today = false;
 
 	for (size_t i = 0; i + 1 < r->elements; i += 2) {
 		redisReply *k = r->element[i];
@@ -173,6 +219,33 @@ int redis_reply_streak_append_json(redisReply *r, struct equi_buf *out) {
 		} else if (k->len == 10 && memcmp(k->str, "pending_ts", 10) == 0) {
 			pending_ts = v->str;
 			pts_len = (size_t)v->len;
+		} else if (k->len == 8 && memcmp(k->str, "timezone", 8) == 0) {
+			timezone = v->str;
+			timezone_len = (size_t)v->len;
+		} else if (k->len == 10 && memcmp(k->str, "timezone_a", 10) == 0) {
+			timezone_a = v->str;
+			timezone_a_len = (size_t)v->len;
+		} else if (k->len == 10 && memcmp(k->str, "timezone_b", 10) == 0) {
+			timezone_b = v->str;
+			timezone_b_len = (size_t)v->len;
+		} else if (k->len == 15 && memcmp(k->str, "activity_a_date", 15) == 0) {
+			activity_a_date = v->str;
+			activity_a_len = (size_t)v->len;
+		} else if (k->len == 15 && memcmp(k->str, "activity_b_date", 15) == 0) {
+			activity_b_date = v->str;
+			activity_b_len = (size_t)v->len;
+		} else if (k->len == 12 && memcmp(k->str, "today_a_date", 12) == 0) {
+			today_a_date = v->str;
+			today_a_len = (size_t)v->len;
+		} else if (k->len == 12 && memcmp(k->str, "today_b_date", 12) == 0) {
+			today_b_date = v->str;
+			today_b_len = (size_t)v->len;
+		} else if (k->len == 16 && memcmp(k->str, "completed_a_date", 16) == 0) {
+			complete_a_date = v->str;
+			complete_a_len = (size_t)v->len;
+		} else if (k->len == 16 && memcmp(k->str, "completed_b_date", 16) == 0) {
+			complete_b_date = v->str;
+			complete_b_len = (size_t)v->len;
 		}
 	}
 
@@ -249,6 +322,75 @@ int redis_reply_streak_append_json(redisReply *r, struct equi_buf *out) {
 	} else {
 		rc |= equi_buf_puts(out, "null");
 	}
+	rc |= equi_buf_puts(out, ",\"timezone\":\"");
+	if (timezone && timezone_len)
+		rc |= equi_buf_putn(out, timezone, timezone_len);
+	else
+		rc |= equi_buf_puts(out, "UTC");
+	rc |= equi_buf_putc(out, '\"');
+	rc |= equi_buf_puts(out, ",\"timezone_a\":\"");
+	if (timezone_a && timezone_a_len)
+		rc |= equi_buf_putn(out, timezone_a, timezone_a_len);
+	else if (timezone && timezone_len)
+		rc |= equi_buf_putn(out, timezone, timezone_len);
+	else
+		rc |= equi_buf_puts(out, "UTC");
+	rc |= equi_buf_puts(out, "\",\"timezone_b\":\"");
+	if (timezone_b && timezone_b_len)
+		rc |= equi_buf_putn(out, timezone_b, timezone_b_len);
+	else if (timezone && timezone_len)
+		rc |= equi_buf_putn(out, timezone, timezone_len);
+	else
+		rc |= equi_buf_puts(out, "UTC");
+	rc |= equi_buf_puts(out, "\",\"timezone_a_known\":");
+	rc |= equi_buf_puts(out, timezone_a && timezone_a_len ? "true" : "false");
+	rc |= equi_buf_puts(out, ",\"timezone_b_known\":");
+	rc |= equi_buf_puts(out, timezone_b && timezone_b_len ? "true" : "false");
+	rc |= equi_buf_puts(out, ",\"user_a_activity_date\":");
+	if (activity_a_date && activity_a_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, activity_a_date, activity_a_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
+	rc |= equi_buf_puts(out, ",\"user_b_activity_date\":");
+	if (activity_b_date && activity_b_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, activity_b_date, activity_b_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
+	rc |= equi_buf_puts(out, ",\"user_a_today_date\":");
+	if (today_a_date && today_a_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, today_a_date, today_a_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
+	rc |= equi_buf_puts(out, ",\"user_b_today_date\":");
+	if (today_b_date && today_b_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, today_b_date, today_b_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
+	complete_today = a_today && b_today;
+	rc |= equi_buf_puts(out, ",\"complete_today\":");
+	rc |= equi_buf_puts(out, complete_today ? "true" : "false");
+	rc |= equi_buf_puts(out, ",\"completed_a_date\":");
+	if (complete_a_date && complete_a_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, complete_a_date, complete_a_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
+	rc |= equi_buf_puts(out, ",\"completed_b_date\":");
+	if (complete_b_date && complete_b_len) {
+		rc |= equi_buf_putc(out, '\"');
+		rc |= equi_buf_putn(out, complete_b_date, complete_b_len);
+		rc |= equi_buf_putc(out, '\"');
+	} else
+		rc |= equi_buf_puts(out, "null");
 	rc |= equi_buf_putc(out, '}');
 	return rc;
 }

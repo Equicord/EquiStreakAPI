@@ -185,6 +185,7 @@ static int handle_post_by_recipient(struct http_request *r, void *userdata) {
 
 	char sender[MAX_UID_LEN];
 	snprintf(sender, sizeof sender, "%s", uid);
+	char timezone[129] = "UTC";
 	if (r->body_len > 0) {
 		struct json_object *body = http_req_json(r);
 		if (!body || !json_object_is_type(body, json_type_object)) {
@@ -192,6 +193,16 @@ static int handle_post_by_recipient(struct http_request *r, void *userdata) {
 			return http_send_error(r->conn, 400, "Request body must be a JSON object");
 		}
 		struct json_object *sender_obj = NULL;
+		struct json_object *timezone_obj = NULL;
+		if (json_object_object_get_ex(body, "timezone", &timezone_obj)) {
+			const char *reported_timezone = json_object_get_string(timezone_obj);
+			if (!json_object_is_type(timezone_obj, json_type_string) || !reported_timezone ||
+				strlen(reported_timezone) >= sizeof timezone) {
+				json_object_put(body);
+				return http_send_error(r->conn, 400, "timezone must be an IANA timezone name");
+			}
+			snprintf(timezone, sizeof timezone, "%s", reported_timezone);
+		}
 		if (json_object_object_get_ex(body, "sender_id", &sender_obj)) {
 			const char *reported_sender = json_object_get_string(sender_obj);
 			if (!json_object_is_type(sender_obj, json_type_string) ||
@@ -221,7 +232,7 @@ static int handle_post_by_recipient(struct http_request *r, void *userdata) {
 	}
 
 	struct equi_buf body = {0};
-	if (streak_update(sender, lo, hi, &body) != 0) {
+	if (streak_update(uid, lo, hi, sender, timezone, &body) != 0) {
 		equi_buf_free(&body);
 		return http_send_error(r->conn, 500, "Internal server error");
 	}
