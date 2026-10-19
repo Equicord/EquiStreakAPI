@@ -40,7 +40,8 @@ int redis_streak_append_hmset(redisContext *c,
 							  const char *last_streak_date_override,
 							  const char *today_date_override,
 							  const char *pending_date,
-							  const char *timezone,
+							  const char *timezone_a,
+							  const char *timezone_b,
 							  int64_t now) {
 	if (!c || !key || !lo || !hi) return -1;
 
@@ -81,6 +82,8 @@ int redis_streak_append_hmset(redisContext *c,
 							  "today_date %s "
 							  "pending_date %s "
 							  "timezone %s "
+							  "timezone_a %s "
+							  "timezone_b %s "
 							  "user_a_today %s "
 							  "user_b_today %s",
 							  key, key_len,
@@ -93,7 +96,9 @@ int redis_streak_append_hmset(redisContext *c,
 							  last_streak_date,
 							  today_date,
 							  pending_date ? pending_date : "",
-							  timezone ? timezone : "UTC",
+							  timezone_a ? timezone_a : "UTC",
+							  timezone_a ? timezone_a : "UTC",
+							  timezone_b ? timezone_b : "UTC",
 							  a_today ? "1" : "0",
 							  b_today ? "1" : "0") == REDIS_OK
 			   ? 0

@@ -163,7 +163,7 @@ int handle_migrate(struct http_request *r, void *userdata) {
 									  last_round_ts, pending, pending_ts,
 									  last_day, today_date_v,
 									  user_a_today_b || user_b_today_b ? today_date_v : NULL,
-									  "UTC", now) != 0) {
+									  "UTC", "UTC", now) != 0) {
 			any_error = true;
 			redis_invalidate_ctx();
 			break;

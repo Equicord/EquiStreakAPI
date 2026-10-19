@@ -371,6 +371,7 @@ int streak_update(const char *current_uid, const char *user_a_id, const char *us
 									  dec.state.today_a_date,
 									  dec.state.pending_date,
 									  dec.state.timezone_a[0] ? dec.state.timezone_a : dec.state.timezone_b,
+									  dec.state.timezone_b[0] ? dec.state.timezone_b : dec.state.timezone_a,
 									  now) != 0 ||
 			redis_streak_append_activity_hmset(c, key, key_len, &dec.state) != 0 ||
 			redisAppendCommand(c, "HGETALL %b", key, key_len) != REDIS_OK ||

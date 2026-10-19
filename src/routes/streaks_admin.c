@@ -21,6 +21,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+
+static bool admin_valid_timezone(const char *timezone) {
+	if (!timezone || !*timezone || strlen(timezone) > 128 || timezone[0] == '/') return false;
+	if (strstr(timezone, "..")) return false;
+	for (const unsigned char *p = (const unsigned char *)timezone; *p; p++)
+		if (!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
+			  (*p >= '0' && *p <= '9') || *p == '_' || *p == '-' || *p == '+' || *p == '/')) return false;
+	char path[256];
+	int n = snprintf(path, sizeof path, "/usr/share/zoneinfo/%s", timezone);
+	return n > 0 && (size_t)n < sizeof path && access(path, R_OK) == 0;
+}
 
 static int64_t admin_iso_to_epoch_noon(const char *iso) {
 	if (!iso || strlen(iso) < 10) return 0;
@@ -96,10 +108,27 @@ int handle_admin_update(struct http_request *r, void *userdata) {
 	bool user_b_today_v = false;
 
 	const char *s_opt = NULL;
+	const char *timezone_a = "UTC";
+	const char *timezone_b = "UTC";
+	const char *timezone_lo;
+	const char *timezone_hi;
 	if (j_get_str(body, "last_streak_date", &s_opt)) last_streak_date = s_opt;
 	if (j_get_str(body, "today_date", &s_opt)) today_date_v = s_opt;
+	if (j_get_str(body, "timezone_a", &s_opt)) timezone_a = s_opt;
+	if (j_get_str(body, "timezone_b", &s_opt)) timezone_b = s_opt;
 	j_get_bool(body, "user_a_today", &user_a_today_v);
 	j_get_bool(body, "user_b_today", &user_b_today_v);
+	if (!admin_valid_timezone(timezone_a) || !admin_valid_timezone(timezone_b)) {
+		json_object_put(body);
+		return http_send_error(r->conn, 400, "timezone_a and timezone_b must be valid IANA timezones");
+	}
+	if (strcmp(a, lo) == 0) {
+		timezone_lo = timezone_a;
+		timezone_hi = timezone_b;
+	} else {
+		timezone_lo = timezone_b;
+		timezone_hi = timezone_a;
+	}
 
 	int64_t last_round_ts = admin_iso_to_epoch_noon(last_streak_date);
 	int64_t pending_ts = admin_iso_to_epoch_noon(today_date_v);
@@ -134,7 +163,8 @@ int handle_admin_update(struct http_request *r, void *userdata) {
 	if (redis_streak_append_hmset(c, key, key_len, count_v,
 								  lo, strlen(lo), hi, strlen(hi),
 								  last_round_ts, pending, pending_ts,
-								  last_streak_date, today_date_v, NULL, "UTC", now) != 0 ||
+								  last_streak_date, today_date_v, NULL,
+								  timezone_lo, timezone_hi, now) != 0 ||
 		redisAppendCommand(c, "HGETALL %b", key, key_len) != REDIS_OK) {
 		json_object_put(body);
 		redis_invalidate_ctx();
