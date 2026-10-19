@@ -16,6 +16,7 @@
 #include "../util.h"
 #include "streaks_internal.h"
 
+#include <json-c/json.h>
 #include <microhttpd.h>
 
 #include <stdbool.h>
@@ -182,6 +183,28 @@ static int handle_post_by_recipient(struct http_request *r, void *userdata) {
 	if (!equi_is_discord_id(recipient)) return http_send_error(r->conn, 400, "recipient_id must be a 1-20 digit Discord ID");
 	if (strcmp(uid, recipient) == 0) return http_send_error(r->conn, 400, "Cannot streak with yourself");
 
+	char sender[MAX_UID_LEN];
+	snprintf(sender, sizeof sender, "%s", uid);
+	if (r->body_len > 0) {
+		struct json_object *body = http_req_json(r);
+		if (!body || !json_object_is_type(body, json_type_object)) {
+			json_object_put(body);
+			return http_send_error(r->conn, 400, "Request body must be a JSON object");
+		}
+		struct json_object *sender_obj = NULL;
+		if (json_object_object_get_ex(body, "sender_id", &sender_obj)) {
+			const char *reported_sender = json_object_get_string(sender_obj);
+			if (!json_object_is_type(sender_obj, json_type_string) ||
+				!equi_is_discord_id(reported_sender) ||
+				(strcmp(reported_sender, uid) != 0 && strcmp(reported_sender, recipient) != 0)) {
+				json_object_put(body);
+				return http_send_error(r->conn, 400, "sender_id must identify you or the DM recipient");
+			}
+			snprintf(sender, sizeof sender, "%s", reported_sender);
+		}
+		json_object_put(body);
+	}
+
 	const char *lo, *hi;
 	sort_two_ids(uid, recipient, &lo, &hi);
 
@@ -198,7 +221,7 @@ static int handle_post_by_recipient(struct http_request *r, void *userdata) {
 	}
 
 	struct equi_buf body = {0};
-	if (streak_update(uid, lo, hi, &body) != 0) {
+	if (streak_update(sender, lo, hi, &body) != 0) {
 		equi_buf_free(&body);
 		return http_send_error(r->conn, 500, "Internal server error");
 	}
